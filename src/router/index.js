@@ -3,11 +3,13 @@ import HomeView from '../views/HomeView.vue'
 
 const routes = [
   {
+    // 这里 path:/ 和 组件 HomeView 映射
     path: '/',
     name: 'home',
     component: HomeView
   },
   {
+    // 这里 path:/about 和 组件 AboutView 映射
     path: '/about',
     name: 'about',
     // route level code-splitting

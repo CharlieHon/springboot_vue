@@ -1,8 +1,11 @@
 <template>
+  <!--App.Vue可以进行布局-->
   <nav>
     <router-link to="/">Home</router-link> |
     <router-link to="/about">About</router-link>
   </nav>
+  <!--<router-view>是路由视图指令，会根据请求的url来决定应该由哪个路由视图来替代<router-view>-->
+  <!--<router-view>是一种动态路由，由请求url中的uri来指定-->
   <router-view/>
 </template>
 
