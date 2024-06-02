@@ -22,8 +22,18 @@
       <el-table-column fixed="right" label="操作" width="100">
         <template #default="scope">
           <!--自定义内容需要使用该行数据时，声明 #default="scope"，再通过 scope.row 获取当前行数据-->
-          <el-button type="text" @click="handleEdit(scope.row)">编辑</el-button>
-          <el-button type="text">删除</el-button>
+          <!--
+          handleEdit方法从当前前端页面数据拿到当前行的家具信息，可能得到的数据不是最新的
+          handleEdit2方法拿到当前行数据id后，重新向DB发出请求获取家具信息
+          -->
+          <el-button type="text" @click="handleEdit2(scope.row)">编辑</el-button>
+          <!--引入一个确认框-->
+          <!--<el-button type="text" @click="">删除</el-button>-->
+          <el-popconfirm title="确定删除吗？" @confirm="handleDel(scope.row.id)">
+            <template #reference>
+              <el-button type="text">删除</el-button>
+            </template>
+          </el-popconfirm>
         </template>
       </el-table-column>
     </el-table>
@@ -101,6 +111,24 @@ export default {
       this.form = JSON.parse(JSON.stringify(row));
       this.dialogVisible = true;
     },
+    // 新回显函数，点击编辑按钮时从DB中获取数据
+    handleEdit2(row) {
+      // console.log("row=", row);
+      // console.log("row.id=", row.id);  // 虽然从handleEdit看row是代理对象，但是通过row.id也可以获取到对象的id
+      request.get(`/api/get/${row.id}`).then(res => {
+        // console.log("res=", res);
+        // console.log("res.data=", res.data);
+        if (res.code === "200") { // 查询成功
+          this.form = res.data;
+          this.dialogVisible=true;
+        } else {
+          this.$message({
+            type: "error",
+            message: res.msg
+          })
+        }
+      })
+    },
     // add方法，显示添加的对话框
     add() {
       // 每次显示添加的对话框时，清空表单数据
@@ -164,6 +192,26 @@ export default {
         // console.log("res=", res);  // 通过控制台输出判断返回数据res中哪部分是家具列表
         // 将返回的数据和 tableData 绑定
         this.tableData = res.data;
+      })
+    },
+    // 处理删除家具，传入家具id
+    handleDel(id) {
+      // 模板字符串 ``
+      request.delete(`/api/del/${id}`).then(res => {
+        // console.log("id=", id);
+        if (res.code === "200") {
+          this.$message({
+            type: "success",
+            message: "删除成功"
+          })
+        } else {
+          this.$message({
+            type: "error",
+            message: res.msg
+          })
+        }
+        // 刷新列表
+        this.list();
       })
     }
   }
