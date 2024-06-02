@@ -12,7 +12,7 @@
     </div>
 
     <!--将表格数据(即后端数据)放在HomeView.vue中-->
-    <el-table :data="tableData" stripe style="width: 100%">
+    <el-table :data="tableData" stripe style="width: 90%">
       <el-table-column sortable prop="id" label="ID"/>
       <el-table-column prop="name" label="名称"/>
       <el-table-column prop="maker" label="制造商"/>
@@ -87,8 +87,19 @@ export default {
     this.list();
   },
   methods: {  // 方法
-    handleEdit() {
+    handleEdit(row) {
+      // // 查看scope.row传过来的是什么东西，Proxy(Object)代理对象
+      // console.log("row1=", row);
+      // // 将其转换为JSON格式的字符串
+      // console.log("row2=", JSON.stringify(row));
+      // // 再从json格式的字符串构造JSON对象，即要发送的数据
+      // console.log("row3=", JSON.parse(JSON.stringify(row)));
 
+      // 把得到的数据和form绑定，显示对话框
+      // 1. JSON.parse(JSON.stringify(row))对行数据进行了深拷贝
+      // 2. 点击表格当前行的数据和弹出框的数据是独立的
+      this.form = JSON.parse(JSON.stringify(row));
+      this.dialogVisible = true;
     },
     // add方法，显示添加的对话框
     add() {
@@ -96,18 +107,56 @@ export default {
       this.form = {};
       this.dialogVisible = true;
     },
-    // save方法，添加家具
+    // save方法，既完成添加家具操作，又负责修改家具操作
     save() {
-      // 在 vue.config.js 中配置了代理，将 /api 替换为 http://localhost:9090
-      // 1. /api/save 真实对应的请求地址url 是 http://localhost:9090/save
-      // 2. 当跨域执行请求时，浏览器还是提示 http://localhost:9090/api/save ，但不要认为是api没有进行替换
-      request.post("/api/save", this.form).then(
-          res => {  // 箭头函数，详见前端技术栈
-            // res就是后端程序返回给前端的结果
-            console.log("res=", res);
-            this.dialogVisible = false;
-          }
-      )
+      // 如何区分添加和修改操作？
+      // 注意到，添加时add()将form置空`{}`；而修改时，form为当前行数据的深拷贝
+      // 即，可以通过当前form的id是否为空，来区分是添加家具操作还是修改家具操作
+
+      // 注意到，添加和修改分支中都包含刷新列表和关闭对话框的操作
+      // 问：将这两句代码提出来放在if语句外面吗？
+      // 答：不行！因为是通过axios发出的异步请求，如果刷新操作放在if语句外面而不是request请求的then语句中
+      // 那么request所做的修改/添加请求，就无法保证与刷新请求之间的执行顺序。可能在还没完成request请求时，就已经刷新了！
+
+      if (this.form.id) { // 执行修改
+        request.put("/api/update", this.form).then(
+            res => {
+              if (res.code === "200") { // 修改成功
+                // 提示修改成功
+                this.$message({
+                  type: "success",
+                  message: res.message
+                })
+              } else {  // 修改失败
+                this.$message({
+                  type: "error",
+                  message: "更新成功"
+                })
+              }
+              // 刷新家具列表
+              this.list();
+              // 关闭对话框
+              this.dialogVisible = false;
+            }
+        )
+      } else {  // 执行添加
+        // 在 vue.config.js 中配置了代理，将 /api 替换为 http://localhost:9090
+        // 1. /api/save 真实对应的请求地址url 是 http://localhost:9090/save
+        // 2. 当跨域执行请求时，浏览器还是提示 http://localhost:9090/api/save ，但不要认为是api没有进行替换
+        request.post("/api/save", this.form).then(
+            res => {  // 箭头函数，详见前端技术栈
+              // res就是后端程序返回给前端的结果
+              console.log("res=", res);
+              this.dialogVisible = false;
+              // 添加后刷新一下
+              this.list();
+            }
+        )
+      }
+
+      // 不能在异步请求外面！
+      // this.list();  // 刷新家具列表
+      // this.dialogVisible = false; // 关闭对话框
     },
     // list方法，显示所有家具信息
     list() {
