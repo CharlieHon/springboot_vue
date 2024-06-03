@@ -8,7 +8,7 @@
     <!--引入搜索框-->
     <div style="margin: 10px 0">
       <el-input v-model="search" placeholder="请输入关键字" style="width: 30%"></el-input>
-      <el-button style="margin-left: 10px" type="primary">查询</el-button>
+      <el-button style="margin-left: 10px" type="primary" @click="list">查询</el-button>
     </div>
 
     <!--将表格数据(即后端数据)放在HomeView.vue中-->
@@ -217,24 +217,39 @@ export default {
     },
     // list方法，显示所有家具信息
     list() {
+      // 1) 查询全部
       // request.get("/api/furns").then(res => {
       //   // console.log("res=", res);  // 通过控制台输出判断返回数据res中哪部分是家具列表
       //   // 将返回的数据和 tableData 绑定
       //   this.tableData = res.data;
       // })
+
+      // 2) 分页查询
       // 使用模板字符串拼接参数值
       // request.get(`/api/furnByPage?pageNum=${this.currentPage}&pageSize=${this.pageSize}`)
-      request.get("/api/furnByPage", {
+      // request.get("/api/furnByPage", {
+      //   params: {
+      //     "pageNum": this.currentPage,
+      //     "pageSize": this.pageSize,
+      //   }
+      // }).then(res => {
+      //   // 先查看一下后端分页请求返回数据的格式
+      //   // console.log("res=", res);
+      //   this.total = res.data.total;  // 修改总记录为查询返回的结果
+      //   this.tableData = res.data.records;
+      // });
+
+      // 3) 条件分页查询
+      request.get("/api/furnBySearchPage", {
         params: {
-          "pageNum": this.currentPage,
-          "pageSize": this.pageSize,
+          pageNum: this.currentPage,
+          pageSize: this.pageSize,
+          search: this.search
         }
       }).then(res => {
-        // 先查看一下后端分页请求返回数据的格式
-        // console.log("res=", res);
-        this.total = res.data.total;  // 修改总记录为查询返回的结果
+        this.total = res.data.total;
         this.tableData = res.data.records;
-      });
+      })
     },
     // 处理删除家具，传入家具id
     handleDel(id) {
