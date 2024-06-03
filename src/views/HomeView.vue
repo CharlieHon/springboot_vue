@@ -38,6 +38,21 @@
       </el-table-column>
     </el-table>
 
+    <!--引入分页组件，可以根据自己的需要进行定制
+      layout属性指示导航条显示哪些部分
+    -->
+    <div style="margin: 10px 0">
+      <el-pagination
+          @size-change="handlePageSizeChange"
+          @current-change="handleCurrentChange"
+          :current-page="currentPage"
+          :page-sizes="[5, 10]"
+          :page-size="pageSize"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total">
+      </el-pagination>
+    </div>
+
     <!--添加家具的弹窗
       说明：
       1. el-dialog: v-model="dialogVisible" 表示对话框，和 dialogVisible 变量双向绑定，控制是否显示对话框
@@ -84,6 +99,10 @@ export default {
   components: {},
   data() { // 数据部分
     return {
+      // 分页显示相关参数
+      currentPage: 1,   // 当前页
+      pageSize: 5,      // 每页显示几条记录
+      total: 10,        // 总共有多少页，会通过请求获得表中对应的记录
       form: {},   // 表单数据
       dialogVisible: false, // 控制对话框是否显示，默认为false
       search: '',
@@ -97,6 +116,16 @@ export default {
     this.list();
   },
   methods: {  // 方法
+    // 处理修改pageSize的变化
+    handlePageSizeChange(pageSize) {  // 通过导航栏改变pageSize时，底层机制会自动传过来
+      this.pageSize = pageSize;
+      this.list();  // 刷新家具列表
+    },
+    // 处理 currentPage 的变化
+    handleCurrentChange(currentPage) {
+      this.currentPage = currentPage;
+      this.list();  // 刷新家具列表
+    },
     handleEdit(row) {
       // // 查看scope.row传过来的是什么东西，Proxy(Object)代理对象
       // console.log("row1=", row);
@@ -120,7 +149,7 @@ export default {
         // console.log("res.data=", res.data);
         if (res.code === "200") { // 查询成功
           this.form = res.data;
-          this.dialogVisible=true;
+          this.dialogVisible = true;
         } else {
           this.$message({
             type: "error",
@@ -188,11 +217,24 @@ export default {
     },
     // list方法，显示所有家具信息
     list() {
-      request.get("/api/furns").then(res => {
-        // console.log("res=", res);  // 通过控制台输出判断返回数据res中哪部分是家具列表
-        // 将返回的数据和 tableData 绑定
-        this.tableData = res.data;
-      })
+      // request.get("/api/furns").then(res => {
+      //   // console.log("res=", res);  // 通过控制台输出判断返回数据res中哪部分是家具列表
+      //   // 将返回的数据和 tableData 绑定
+      //   this.tableData = res.data;
+      // })
+      // 使用模板字符串拼接参数值
+      // request.get(`/api/furnByPage?pageNum=${this.currentPage}&pageSize=${this.pageSize}`)
+      request.get("/api/furnByPage", {
+        params: {
+          "pageNum": this.currentPage,
+          "pageSize": this.pageSize,
+        }
+      }).then(res => {
+        // 先查看一下后端分页请求返回数据的格式
+        // console.log("res=", res);
+        this.total = res.data.total;  // 修改总记录为查询返回的结果
+        this.tableData = res.data.records;
+      });
     },
     // 处理删除家具，传入家具id
     handleDel(id) {
