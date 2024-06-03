@@ -61,20 +61,22 @@
             这样到后台才会进行数据封装
     -->
     <el-dialog title="提示" v-model="dialogVisible" width="30%">
-      <el-form :model="form" label-width="120px">
-        <el-form-item label="家具名">
+      <!--增加表单验证-->
+      <el-form :model="form" :rules="rules" ref="form" label-width="120px">
+        <!--prop表示和rules的哪个规则关联-->
+        <el-form-item label="家具名" prop="name">
           <el-input v-model="form.name" style="width: 80%"/>
         </el-form-item>
-        <el-form-item label="制造商">
+        <el-form-item label="制造商" prop="maker">
           <el-input v-model="form.maker" style="width: 80%"/>
         </el-form-item>
-        <el-form-item label="价格">
+        <el-form-item label="价格" prop="price">
           <el-input v-model="form.price" style="width: 80%"/>
         </el-form-item>
-        <el-form-item label="销量">
+        <el-form-item label="销量" prop="sales">
           <el-input v-model="form.sales" style="width: 80%"/>
         </el-form-item>
-        <el-form-item label="库存">
+        <el-form-item label="库存" prop="stock">
           <el-input v-model="form.stock" style="width: 80%"/>
         </el-form-item>
       </el-form>
@@ -106,7 +108,27 @@ export default {
       form: {},   // 表单数据
       dialogVisible: false, // 控制对话框是否显示，默认为false
       search: '',
-      tableData: []
+      tableData: [],
+      rules: {    // 提交表单的验证规则
+        name: [
+          {required: true, message: '请输入家具名', trigger: 'blur'}
+        ],
+        maker: [
+          {required: true, message: '请输入厂商名', trigger: 'blur'}
+        ],
+        price: [
+          {required: true, message: '请输入价格', trigger: 'blur'},
+          {pattern: /^(([1-9]\d*)|0)(\.\d+)?$/, message: '请输入数字', trigger: 'blur'}
+        ],
+        sales: [
+          {required: true, message: '请输入销量', trigger: 'blur'},
+          {pattern: /^(([1-9]\d*)|0)$/, message: '请输入数字', trigger: 'blur'}
+        ],
+        stock: [
+          {required: true, message: '请输入库存', trigger: 'blur'},
+          {pattern: /(([1-9]\d*)|0)/, message: '请输入数字', trigger: 'blur'}
+        ]
+      }
     }
   },
   // 声明周期函数 created ，放在与 data、 methods 同等级别处
@@ -163,6 +185,8 @@ export default {
       // 每次显示添加的对话框时，清空表单数据
       this.form = {};
       this.dialogVisible = true;
+      // 将上次表单验证的信息清空
+      this.$refs['form'].resetFields();
     },
     // save方法，既完成添加家具操作，又负责修改家具操作
     save() {
@@ -197,18 +221,38 @@ export default {
             }
         )
       } else {  // 执行添加
+        // 1) 添加-无数据校验
         // 在 vue.config.js 中配置了代理，将 /api 替换为 http://localhost:9090
         // 1. /api/save 真实对应的请求地址url 是 http://localhost:9090/save
         // 2. 当跨域执行请求时，浏览器还是提示 http://localhost:9090/api/save ，但不要认为是api没有进行替换
-        request.post("/api/save", this.form).then(
-            res => {  // 箭头函数，详见前端技术栈
-              // res就是后端程序返回给前端的结果
-              console.log("res=", res);
+        // request.post("/api/save", this.form).then(
+        //     res => {  // 箭头函数，详见前端技术栈
+        //       // res就是后端程序返回给前端的结果
+        //       console.log("res=", res);
+        //       this.dialogVisible = false;
+        //       // 添加后刷新一下
+        //       this.list();
+        //     }
+        // )
+
+        // 2) 添加-数据校验版，如果验证没有通过就不提交
+        this.$refs['form'].validate((valid) => {
+          // alert(valid); // 通过：true
+          if (valid) {  // 验证通过
+            request.post("/api/save", this.form).then(res => {
+              // this.dialogVisible = true;
               this.dialogVisible = false;
-              // 添加后刷新一下
               this.list();
-            }
-        )
+            })
+          } else {  // 验证失败
+            this.$message({
+              type: "error",
+              message: "验证未通过！"
+            })
+            // 只有返回false，确定按钮才没有提交请求
+            return false;
+          }
+        })
       }
 
       // 不能在异步请求外面！
