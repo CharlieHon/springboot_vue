@@ -65,19 +65,25 @@
       <el-form :model="form" :rules="rules" ref="form" label-width="120px">
         <!--prop表示和rules的哪个规则关联-->
         <el-form-item label="家具名" prop="name">
-          <el-input v-model="form.name" style="width: 80%"/>
+          <el-input v-model="form.name" style="width: 50%"/>
+          <!--显示返回的后端校验信息-vue插入表达式-->
+          {{validMsg.name}}
         </el-form-item>
         <el-form-item label="制造商" prop="maker">
-          <el-input v-model="form.maker" style="width: 80%"/>
+          <el-input v-model="form.maker" style="width: 50%"/>
+          {{validMsg.maker}}
         </el-form-item>
         <el-form-item label="价格" prop="price">
-          <el-input v-model="form.price" style="width: 80%"/>
+          <el-input v-model="form.price" style="width: 50%"/>
+          {{validMsg.price}}
         </el-form-item>
         <el-form-item label="销量" prop="sales">
-          <el-input v-model="form.sales" style="width: 80%"/>
+          <el-input v-model="form.sales" style="width: 50%"/>
+          {{validMsg.sales}}
         </el-form-item>
         <el-form-item label="库存" prop="stock">
-          <el-input v-model="form.stock" style="width: 80%"/>
+          <el-input v-model="form.stock" style="width: 50%"/>
+          {{validMsg.stock}}
         </el-form-item>
       </el-form>
       <template #footer>
@@ -101,6 +107,8 @@ export default {
   components: {},
   data() { // 数据部分
     return {
+      // 关联后端校验数据/信息
+      validMsg: {},
       // 分页显示相关参数
       currentPage: 1,   // 当前页
       pageSize: 5,      // 每页显示几条记录
@@ -187,6 +195,8 @@ export default {
       this.dialogVisible = true;
       // 将上次表单验证的信息清空
       this.$refs['form'].resetFields();
+      // 清空上次后端校验信息
+      this.validMsg = {};
     },
     // save方法，既完成添加家具操作，又负责修改家具操作
     save() {
@@ -238,11 +248,22 @@ export default {
         // 2) 添加-数据校验版，如果验证没有通过就不提交
         this.$refs['form'].validate((valid) => {
           // alert(valid); // 通过：true
-          if (valid) {  // 验证通过
+          // 测试一下，先将valid置为true
+          // valid = true;
+          if (valid) {  // 前端校验通过
             request.post("/api/save", this.form).then(res => {
-              // this.dialogVisible = true;
-              this.dialogVisible = false;
-              this.list();
+              if (res.code === "200") { // 后端校验通过，添加成功
+                // this.dialogVisible = true;
+                this.dialogVisible = false;
+                this.list();
+              } else if (res.code === "400") {  // 后端校验失败
+                // 取出返回的校验错误信息
+                this.validMsg.name = res.data.name;
+                this.validMsg.maker = res.data.maker;
+                this.validMsg.price = res.data.price;
+                this.validMsg.sales = res.data.sales;
+                this.validMsg.stock = res.data.stock;
+              }
             })
           } else {  // 验证失败
             this.$message({
@@ -284,7 +305,7 @@ export default {
       // });
 
       // 3) 条件分页查询
-      request.get("/api/furnBySearchPage", {
+      request.get("/api/furnBySearchPage2", {
         params: {
           pageNum: this.currentPage,
           pageSize: this.pageSize,
